@@ -2,7 +2,7 @@
 
 <!-- README.md is generated from README.qmd. Please edit that file -->
 
-# Mixed-type vectors for semantic variables
+# Semantic vectors for safer statistics
 
 <!-- badges: start -->
 
@@ -18,12 +18,12 @@ Slides and notes for a presentation about vectorised statistics at useR!
 #### Abstract
 
 Statistical analysis on temporal, spatial, graph, and probabilistic data
-requires special care to appropriately handle their intrinsic structure.
-Outputs from models typically return these composite data types
-separately, requiring the user to assemble and apply the results
-correctly. This reduces the accessibility of statistics and results in
-error-prone analysis. Representing these data types using composite
-vector types makes statistical operations and data analysis easier.
+is error-prone when the data types lack intrinsic structure. Outputs
+from models typically return these composite data types separately,
+requiring the user to assemble and apply the results correctly. This
+reduces the accessibility of statistics and results in error-prone
+analysis. Representing these data types using composite vector types
+makes statistical operations and data analysis easier.
 
 In this talk, I will introduce the application of vectorised statistical
 operations across common dimensions not otherwise handled in traditional
@@ -39,11 +39,11 @@ densities. Similarly, storing time at different granularities allows
 combining data from different sources and facilitates forecasts across
 multiple levels of temporal aggregation.
 
-Combinations of these data types in a rectangular ‘tidy’ data structure
-allow for the flexible application of
-probabilistic-spatio-temporal-graph data analysis. For instance, the
-combination of temporal and distributional vectors provides a dataset
-suitable for working with time series forecasts.
+These semantic vectors combine naturally in tidy rectangular data to
+facilitate statistically sensible multi-dimensional analysis. For
+instance, pairing temporal and distributional vectors yields a dataset
+ready for probabilistic time series forecasting, or pairing temporal and
+spatial vectors a dataset ready for spatio-temporal analysis.
 
 #### Structure
 
