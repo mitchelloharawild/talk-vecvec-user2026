@@ -1,0 +1,324 @@
+[
+  {
+    "objectID": "index.html#section",
+    "href": "index.html#section",
+    "title": "",
+    "section": "",
+    "text": "Semantic vectors for\nsafer statistics\n\n\n9th July 2026 @ useR! (Warsaw, Poland)\n\n\nMitchell O’Hara-Wild, Monash University\n\n\n\n\n\n\n\n\nUseful links\n\n\n social.mitchelloharawild.com\n slides.mitchelloharawild.com/user2026\n mitchelloharawild/talk-vecvec-user2026"
+  },
+  {
+    "objectID": "index.html#section-4",
+    "href": "index.html#section-4",
+    "title": "",
+    "section": "",
+    "text": "Safer statistics with semantics\n\nMany data types have intrinsic structure, requiring special care in statistical analysis.\n\n\n🔢 ordinal: ordered, {forcats}\n🍀 uncertainty: p/d/q/r, {distributional}\n⌛ time: Date, POSIXt, {hms}, {mixtime}\n🕸️ graph: {igraph}, {tidygraph}, {graphvec}\n🗺️ spatial: {sp}, {sf}"
+  },
+  {
+    "objectID": "index.html#section-5",
+    "href": "index.html#section-5",
+    "title": "",
+    "section": "",
+    "text": "Safer statistics with semantics\nStatistical operations leverage their structure to prevent analysis that violate semantics.\n\nJan31 &lt;- as.Date(\"2025-01-31\")\nJan31 + 1\n\n[1] \"2025-02-01\"\n\n\n\n\nJan31 * 2\n\nError in `Ops.Date()`:\n! * not defined for \"Date\" objects\n\n\n\n\n\nlog(Jan31)\n\nError in `Math.Date()`:\n! log not defined for \"Date\" objects\n\n\n\n\n\nJan31 + lubridate::period(1, \"months\")\n\n[1] NA\n\n\n\n\n\nSys.Date() + Sys.time()\n\nWarning: Incompatible methods (\"+.Date\", \"+.POSIXt\") for \"+\"\n\n\n[1] \"4884653-08-21\""
+  },
+  {
+    "objectID": "index.html#section-6",
+    "href": "index.html#section-6",
+    "title": "",
+    "section": "",
+    "text": "Unsafe Stats: R’s distributions\nThe included distributions in R (and many extension packages) use p/d/q/r functions for statistical operations on distributions.\n\n\n\n\n\n\nThe p/d/q/r functions\n\n\nThese functions allow you to calculate statistical operations from distributions:\n\np: The ‘probability’ (CDF)\nd: The ‘density’ (PDF)\nq: The ‘quantiles’\nr: The ‘random’ samples\n\nSome packages also define m functions for moments!"
+  },
+  {
+    "objectID": "index.html#section-7",
+    "href": "index.html#section-7",
+    "title": "",
+    "section": "",
+    "text": "Unsafe Stats: R’s distributions\n\n\n\n\n\n\nUsing p/d/q/r functions\n\n\nThese operation prefixes are used in conjunction with the distribution’s shape. The general form is:\n\n&lt;op&gt;&lt;shape&gt;(&lt;args&gt;, &lt;parameters&gt;)\n\n\nFor example, the density (d) at 0.5 of a Normal (norm) distribution with mean 1 and standard deviation 3 is:\n\ndnorm(q = 0.5, mean = 1, sd = 3)\n\n\n\n[1] 0.1311466\n\n\n\n\n\n\n\n\n\n\n\n\n\nSemantics not included\n\n\nThese functions are very error-prone since users have the burden of performing valid distributional operations."
+  },
+  {
+    "objectID": "index.html#section-8",
+    "href": "index.html#section-8",
+    "title": "",
+    "section": "",
+    "text": "Unsafe Stats: R’s distributions\n\n\n\n\n\n\nShort and confusing function names\n\n\nThe p/d/q/r functions need memorisation for each shape.\n\n\n\n\n\n\n\n\n\nRisky recycling\n\n\nThese p/d/q/r functions are vectorised and fast 🎉\nHow these functions vectorise inputs is surprising 👻\n\n\n# 95% intervals from N(1,9)\nqnorm(c(0.025, 0.975), mean = 1, sd = 3)\n\n[1] -4.879892  6.879892\n\n\n\n\n\n# 2.5% from N(1,9) and 97.5% from N(1,16)\nqnorm(c(0.025, 0.975), mean = 1, sd = c(3,4))\n\n[1] -4.879892  8.839856\n\n\n\n\n\n# W̷͌͘h̵̕͘a̶̚͠t̷͘͠ ̷̈́͝i̴͠͠s̴͝͝ ̶̀̕h̷́͠á̶͝p̷͝͝p̴̀͝e̶͘͠n̷͝͝i̸̕͠n̵͝͠g̷̀͝ ̶́͠h̷́͠è̴͘ŕ̷͠e̵͝͝⸘\nqnorm(c(0.025, 0.975), mean = c(1,2), sd = c(3,4,5))\n\n[1] -4.879892  9.839856 -8.799820"
+  },
+  {
+    "objectID": "index.html#section-9",
+    "href": "index.html#section-9",
+    "title": "",
+    "section": "",
+    "text": "Unsafe Stats: R’s distributions\n\n\n\n\n\n\nR’s model prediction output\n\n\nWorst of all: obtaining distributions from models.\n\n\n\n\n\n\n\n🐧 Predicting penguins\n\n\nConsider the output when using predict() on a lm() for the length of penguin bills using depth and species.\n\nfit &lt;- lm(\n  bill_length_mm ~ species*bill_depth_mm, \n  data = palmerpenguins::penguins\n)\npredict(fit, tail(palmerpenguins::penguins))\n\n       1        2        3        4        5        6 \n46.10333 51.48517 48.21763 48.40983 49.94750 49.37088 \n\n\n\n\n\n\n\n\n\n\n\n\n\nWhere’s the uncertainty!\n\n\nBy default, predictions only return the expected value."
+  },
+  {
+    "objectID": "index.html#section-10",
+    "href": "index.html#section-10",
+    "title": "",
+    "section": "",
+    "text": "Unsafe Stats: R’s distributions\n\n\n\n\n\n\nFinding uncertainty!\n\n\nUse se.fit = TRUE in predict() to get standard errors.\n\npredict(fit, tail(palmerpenguins::penguins), \n        se.fit = TRUE)\n\n$fit\n       1        2        3        4        5        6 \n46.10333 51.48517 48.21763 48.40983 49.94750 49.37088 \n\n$se.fit\n        1         2         3         4         5         6 \n0.4769975 0.4685605 0.3082198 0.3020842 0.3333431 0.3054341 \n\n$df\n[1] 336\n\n$residual.scale\n[1] 2.444663"
+  },
+  {
+    "objectID": "index.html#section-11",
+    "href": "index.html#section-11",
+    "title": "",
+    "section": "",
+    "text": "Unsafe Stats: R’s distributions\n\n\n\n\n\n\nTime to compute intervals!\n\n\n(as a naive first-year stats student)\n\npred &lt;- predict(fit, tail(palmerpenguins::penguins), se.fit = TRUE)\nsprintf(\n  \"[%f, %f]95\",\n  qnorm(0.025, mean = pred$fit, pred$se.fit),\n  qnorm(0.975, mean = pred$fit, pred$se.fit)\n)\n\n\n\n[45.168436, 47.038232]95\n[50.566807, 52.403530]95\n[47.613526, 48.821726]95\n[47.817760, 49.001909]95\n[49.294161, 50.600842]95\n[48.772237, 49.969516]95"
+  },
+  {
+    "objectID": "index.html#section-12",
+    "href": "index.html#section-12",
+    "title": "",
+    "section": "",
+    "text": "Unsafe Stats: R’s distributions\nHere’s the code to obtain 95% prediction intervals for the penguins data:\n\npred &lt;- predict(fit, tail(palmerpenguins::penguins), se.fit = TRUE)\nsprintf(\n  \"[%f, %f]95\",\n  pred$fit + qt(0.025, df = pred$df) * pred$se.fit,\n  pred$fit + qt(0.975, df = pred$df) * pred$se.fit\n)\n\n\n\n[45.165056, 47.041611]95\n[50.563487, 52.406850]95\n[47.611342, 48.823910]95\n[47.815620, 49.004049]95\n[49.291799, 50.603204]95\n[48.770072, 49.971680]95\n\n\n\n\n\n\n\n\n\nNot quite right\n\n\nThe above calculations are for confidence intervals, not prediction intervals! Did you notice?"
+  },
+  {
+    "objectID": "index.html#section-13",
+    "href": "index.html#section-13",
+    "title": "",
+    "section": "",
+    "text": "Unsafe Stats: R’s distributions\nThe correct code for prediction intervals is:\n\npred &lt;- predict(fit, tail(palmerpenguins::penguins), se.fit = TRUE)\nsprintf(\n  \"[%f, %f]95\",\n  pred$fit + qt(0.025, df = pred$df) * sqrt(pred$se.fit^2 + pred$residual.scale^2),\n  pred$fit + qt(0.975, df = pred$df) * sqrt(pred$se.fit^2 + pred$residual.scale^2)\n)\n\n\n\n[41.203878, 51.002789]95\n[46.588864, 56.381473]95\n[43.370784, 53.064468]95\n[43.564487, 53.255182]95\n[45.094230, 54.800773]95\n[44.524716, 54.217036]95\n\n\n\n\n\n\n\n\n\nError-prone analysis\n\n\nThere’s a lot to know about regression, distributions, and R functions to get correct prediction intervals.\nIt’s easy to make mistakes (or ignore uncertainty)."
+  },
+  {
+    "objectID": "index.html#section-14",
+    "href": "index.html#section-14",
+    "title": "",
+    "section": "",
+    "text": "A better alternative?\n\nWhat if model predictions could directly produce a vector of distributions?\n# Hypothetical predict() method for lm()\npred &lt;- predict(fit, tail(palmerpenguins::penguins))\npred\n\n\n&lt;distribution[6]&gt;\n[1] t(336, 46, 2.5) t(336, 51, 2.5) t(336, 48, 2.5)\n[4] t(336, 48, 2.5) t(336, 50, 2.5) t(336, 49, 2.5)\n\n\n\n\n\nhilo(pred, 95)\n\n&lt;hilo[6]&gt;\n[1] [41.20388, 51.00279]95 [46.58886, 56.38147]95\n[3] [43.37078, 53.06447]95 [43.56449, 53.25518]95\n[5] [45.09423, 54.80077]95 [44.52472, 54.21704]95"
+  },
+  {
+    "objectID": "index.html#section-15",
+    "href": "index.html#section-15",
+    "title": "",
+    "section": "",
+    "text": "Making better distributions\n\n{vctrs} offers two vector types:\n\n\n\n🏷️ Vectors: new_vctr()\n\n\nVectors add attributes to existing vector types.\ne.g. POSIXct is the seconds since 1970-01-01.\n\nunclass(as.POSIXct(\"2025-12-04 11:00:00\")) \n\n[1] 1764842400\nattr(,\"tzone\")\n[1] \"\"\n\n\n\n\n\n\nThis enables single-parameter distributions:\n\nlibrary(distributional)\ndist_poisson(c(4, 2, 6))\n\n&lt;distribution[3]&gt;\n[1] Pois(4) Pois(2) Pois(6)\n\n\n\n\nWhat about multi-parameter distributions?"
+  },
+  {
+    "objectID": "index.html#section-16",
+    "href": "index.html#section-16",
+    "title": "",
+    "section": "",
+    "text": "Making better distributions\n\n{vctrs} offers two vector types:\n\n\n\n💿 Records: new_rcrd()\n\n\nRecords use information from multiple vectors (of same length).\ne.g. POSIXlt contains the parts of a datetime.\n\n\nunclass(as.POSIXlt(\"2025-12-04 11:00:00\")) |&gt; str()\n\nList of 11\n $ sec   : num 0\n $ min   : int 0\n $ hour  : int 11\n $ mday  : int 4\n $ mon   : int 11\n $ year  : int 125\n $ wday  : int 4\n $ yday  : int 337\n $ isdst : int 0\n $ zone  : chr \"CET\"\n $ gmtoff: int NA\n - attr(*, \"tzone\")= chr [1:3] \"\" \"CET\" \"CEST\"\n - attr(*, \"balanced\")= logi TRUE\n\n\n\n\n\n\n\nThis enables multi-parameter distributions:\n\nlibrary(distributional)\ndist_normal(mu = c(1, 3, -1), sigma = c(3, 2, 4))\n\n&lt;distribution[3]&gt;\n[1] N(1, 9)   N(3, 4)   N(-1, 16)\n\n\n\n\nHow can different shaped distributions coexist within the same vector? That’s trickier!"
+  },
+  {
+    "objectID": "index.html#section-17",
+    "href": "index.html#section-17",
+    "title": "",
+    "section": "",
+    "text": "Mixed-type vectors\n\n{vecvec} creates vectors of vectors:\n\n\n\n🧬 vecvec: vecvec()\n\n\nThese vectors mix different vector types together.\n\nlibrary(vecvec)\nvecvec(c(1,2), c(\"a\",\"b\"), c(TRUE, FALSE))\n\n&lt;vecvec[6]&gt;\n[1] 1     2     a     b      TRUE FALSE\n\n\n\n\n\n\n\n\n\n🛑 A bad idea\n\n\nAlmost always, this causes more problems than it solves."
+  },
+  {
+    "objectID": "index.html#section-18",
+    "href": "index.html#section-18",
+    "title": "",
+    "section": "",
+    "text": "Mixed-type vectors\n\nThese vectors are essentially clever\nindexing of vectors in lists.\n\n\n\n🔍 The structure of vecvec\n\n\nConceptually similar to factor() but indexed over list values.\n\nlibrary(vecvec)\nstr(\n  vecvec(c(1,2), c(\"a\",\"b\"), c(TRUE, FALSE))\n)\n\n&lt;vecvec::vecvec&gt; int [1:6] 1 2 3 4 5 6\n @ x:List of 3\n .. $ : num [1:2] 1 2\n .. $ : chr [1:2] \"a\" \"b\"\n .. $ : logi [1:2] TRUE FALSE"
+  },
+  {
+    "objectID": "index.html#section-19",
+    "href": "index.html#section-19",
+    "title": "",
+    "section": "",
+    "text": "Mixed-type arrays\n\nThe shape (dimensions) of the indices\nare the shape of the vecvec vector.\n\n\n\n🔢 Multi-dimensional\n\n\nUnlike many data types, vecvec can be matrices or arrays.\n\nlibrary(vecvec)\narray(\n  vecvec(c(1,2), c(\"a\",\"b\"), c(TRUE, FALSE)),\n  dim = c(3, 2)\n)\n\n&lt;vecvec[3,2]&gt;\n     [,1] [,2] \n[1,] 1    b    \n[2,] 2     TRUE\n[3,] a    FALSE"
+  },
+  {
+    "objectID": "index.html#section-20",
+    "href": "index.html#section-20",
+    "title": "",
+    "section": "",
+    "text": "Mixed-type operations\n\nOperations apply to each component\nvector (fast and vectorised).\n\n\n\n📐 Analysis across vectors\n\n\n\nlibrary(vecvec)\nvecvec(c(1,2), c(\"a\",\"b\"), c(TRUE, FALSE)) == 1L\n\n[1]  TRUE FALSE FALSE FALSE  TRUE FALSE\n\n\n\n\n\n\n\n\n\n♻️ Recycling and casting\n\n\nOperations respect safe recycling rules.\nCasting rules match underlying vector types."
+  },
+  {
+    "objectID": "index.html#section-21",
+    "href": "index.html#section-21",
+    "title": "",
+    "section": "",
+    "text": "Mixed-type manipulation\n\n\nlibrary(tidyr)\nhousehold\n\n# A tibble: 5 × 5\n  family dob_child1 dob_child2 name_child1 name_child2\n   &lt;int&gt; &lt;date&gt;     &lt;date&gt;     &lt;chr&gt;       &lt;chr&gt;      \n1      1 1998-11-26 2000-01-29 Susan       Jose       \n2      2 1996-06-22 NA         Mark        &lt;NA&gt;       \n3      3 2002-07-11 2004-04-05 Sam         Seth       \n4      4 2004-10-10 2009-08-27 Craig       Khai       \n5      5 2000-12-05 2005-02-28 Parker      Gracie"
+  },
+  {
+    "objectID": "index.html#section-22",
+    "href": "index.html#section-22",
+    "title": "",
+    "section": "",
+    "text": "Mixed-type manipulation\n\n\nlibrary(tidyr)\nhousehold |&gt; \n  pivot_longer(\n    everything(), \n    values_transform = vecvec::vecvec\n  )\n\n# A tibble: 25 × 2\n   name        value     \n   &lt;chr&gt;       &lt;vecvec&gt;  \n 1 family      1         \n 2 dob_child1  2         \n 3 dob_child2  3         \n 4 name_child1 4         \n 5 name_child2 5         \n 6 family      1998-11-26\n 7 dob_child1  1996-06-22\n 8 dob_child2  2002-07-11\n 9 name_child1 2004-10-10\n10 name_child2 2000-12-05\n# ℹ 15 more rows"
+  },
+  {
+    "objectID": "index.html#section-28",
+    "href": "index.html#section-28",
+    "title": "",
+    "section": "",
+    "text": "Mixed-type semantic vectors\n{vecvec} is perhaps only useful for mixed-type vectors that share common semantics.\n\nSuitable semantic data-types include:\n📊 Distributional (different shapes)\n📅 Temporal (different chronons / calendars)\n🗺️ Spatial (different geometries)\n🗳️ Preferential (different candidates)"
+  },
+  {
+    "objectID": "index.html#section-29",
+    "href": "index.html#section-29",
+    "title": "",
+    "section": "",
+    "text": "Mixed-type semantic vectors\n\n\n{vecvec} allows us to efficiently\ncombine distributions of different shape.\n\n\n\n\n\n📊 Mixed distributions\n\n\nPutting it all together…\n\nlibrary(distributional)\ndist &lt;- c(\n  dist_poisson(c(4, 2, 6)),\n  dist_normal(mu = c(1, 3, -1), sigma = c(3, 2, 4))\n)\ndist\n\n&lt;distribution[6]&gt;\n[1] Pois(4)   Pois(2)   Pois(6)   N(1, 9)   N(3, 4)   N(-1, 16)\n\n\n\n\n\n\n\n\n\n\n🧮 Vectorised statistics across distributions\n\n\nSince distributions share common semantics, we can apply statistical operations across them.\n\ndensity(dist, at = 1)\n\n[1] 0.07326256 0.27067057 0.01487251 0.13298076 0.12098536 0.08801633"
+  },
+  {
+    "objectID": "index.html#section-30",
+    "href": "index.html#section-30",
+    "title": "",
+    "section": "",
+    "text": "Better distributions for R\nThe distributional package makes it simpler to create and use distributions in R.\n\n\n\n\n\n\nCreating distributions\n\n\nAll distributions in the package start with dist_*().\n\ndist &lt;- c(\n  dist_poisson(c(4, 2, 6)),\n  dist_normal(mu = c(1, 3, -1), sigma = c(3, 2, 4))\n)\n\nThe package currently provides:\n\n25 continuous distributions,\n9 discrete distributions,\np/d/q/r distributions via dist_wrap(),\nsample, degenerate and percentile distributions."
+  },
+  {
+    "objectID": "index.html#section-31",
+    "href": "index.html#section-31",
+    "title": "",
+    "section": "",
+    "text": "Vectorised distribution statistics\nThe p/d/q/r functions have more descriptive alternatives:\n\np-&gt;cdf(): The CDF\nd-&gt;density(): The density (PDF)\nq-&gt;quantile(): The quantile\nr-&gt;generate(): Random samples\n\n\n\n\n\n\n\nDistributional operations\n\n\nThese functions are the same for any distribution."
+  },
+  {
+    "objectID": "index.html#section-32",
+    "href": "index.html#section-32",
+    "title": "",
+    "section": "",
+    "text": "Vectorised distribution statistics\n\n\n\n\n\n\nOther operations\n\n\nThere are many more statistics than p/d/q/r.\n\nlog_likelihood()/likelihood()\nhilo()\nhdr()\nsupport()\nmean()\nvariance()/covariance()\nskewness()\nkurtosis()"
+  },
+  {
+    "objectID": "index.html#section-33",
+    "href": "index.html#section-33",
+    "title": "",
+    "section": "",
+    "text": "Vectorised distribution statistics\nUse distribution vectors in data frames!\n\nlibrary(dplyr)\ntibble(\n  dist = c(\n    dist_poisson(c(4, 2, 6)),\n    dist_normal(mu = c(1, 3, -1), sigma = c(3, 2, 4))\n  )\n)\n\n# A tibble: 6 × 1\n       dist\n     &lt;dist&gt;\n1   Pois(4)\n2   Pois(2)\n3   Pois(6)\n4   N(1, 9)\n5   N(3, 4)\n6 N(-1, 16)"
+  },
+  {
+    "objectID": "index.html#section-34",
+    "href": "index.html#section-34",
+    "title": "",
+    "section": "",
+    "text": "Vectorised distribution statistics\nPerform statistics alongside distributions.\n\nlibrary(dplyr)\ntibble(\n  dist = c(\n    dist_poisson(c(4, 2, 6)),\n    dist_normal(mu = c(1, 3, -1), sigma = c(3, 2, 4))\n  )\n) |&gt; \n  mutate(\n    mean = mean(dist), var = variance(dist),\n    pdf = density(dist, 1), cdf = cdf(dist, 1)\n  )\n\n# A tibble: 6 × 5\n       dist  mean   var    pdf    cdf\n     &lt;dist&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;\n1   Pois(4)     4     4 0.0733 0.0916\n2   Pois(2)     2     2 0.271  0.406 \n3   Pois(6)     6     6 0.0149 0.0174\n4   N(1, 9)     1     9 0.133  0.5   \n5   N(3, 4)     3     4 0.121  0.159 \n6 N(-1, 16)    -1    16 0.0880 0.691"
+  },
+  {
+    "objectID": "index.html#section-35",
+    "href": "index.html#section-35",
+    "title": "",
+    "section": "",
+    "text": "Mixed-type semantic vectors\n\n\n\n\n🎲 Probabilistic\n\n\nlibrary(distributional)\nc(dist_normal(1, 2), dist_poisson(3))\n\n&lt;distribution[2]&gt;\n[1] N(1, 4) Pois(3)\n\n\n\n\n\n\n\n\n\n📅 Temporal\n\n\nlibrary(mixtime)\ntoday &lt;- Sys.Date()\nc(year(today), yearquarter(today), yearmonth(today))\n\n&lt;mixtime[3]&gt;\n[1] 2026     2026 Q3  2026 Jul\n\n\n\n\n\n\n\n\n\n\n🗺️ Spatial\n\nlibrary(sf)\nc(st_point(c(1, 1)), st_linestring(rbind(c(1, 1),c(2, 2),c(3, 1))), st_polygon(list(rbind(c(0, 0), c(4, 0), c(4, 4), c(0, 4), c(0, 0)))))\n\n\nGeometry set for 3 features \nGeometry type: GEOMETRY\nDimension:     XY\nBounding box:  xmin: 0 ymin: 0 xmax: 4 ymax: 4\nGeodetic CRS:  WGS 84\n\n\n\n\n\n\n\n\n\n\n🗳️ Preferential\n\nlibrary(prefio)\nread_preflib(\"00004 - netflix/00004-00000138.soc\", from_preflib = TRUE)\n\n\n[1] [Beverly Hills Cop &gt; Mean Girls &gt; Mission: Impossible II &gt; The Mummy Returns]\n[2] [Mean Girls &gt; Beverly Hills Cop &gt; Mission: Impossible II &gt; The Mummy Returns]\n[3] [Beverly Hills Cop &gt; Mean Girls &gt; The Mummy Returns &gt; Mission: Impossible II]\n\n\n\n\n\n\n\n🕸️ Graph \n\nlibrary(graphvec)\nedge_vec(from = c(1L, 2L, 1L), to = c(2L, 3L, 3L), nodes = data.frame(id = 1:3, label = c(\"A\", \"B\", \"C\")))\n\n&lt;edge_vec[3]&gt;\n[1] [1:A]-&gt;[2:B] [2:B]-&gt;[3:C] [1:A]-&gt;[3:C]"
+  },
+  {
+    "objectID": "index.html#section-36",
+    "href": "index.html#section-36",
+    "title": "",
+    "section": "",
+    "text": "Combining semantic vectors\n\n🔮📅 Forecasting:\n{mixtime} + {distributional}\n🗺️📅 Spatio-temporal data:\n{sf} + {mixtime}\n🕸️📊 Network modelling:\n{graphvec} + {distributional}\n🔮🗺️📅🕸️\nProbabilistic-spatio-temporal-graph:\n{distributional} + {sf} +\n{mixtime} + {graphvec}"
+  },
+  {
+    "objectID": "index.html#section-37",
+    "href": "index.html#section-37",
+    "title": "",
+    "section": "",
+    "text": "Combining semantic vectors\n\nForecasts from {fable} combines {mixtime} and {distributional} vectors.\nlibrary(fable)\nsunspots_tsbl |&gt; \n  model(ARIMA(value)) |&gt; \n  forecast(h = \"10 years\")\n\n\n# A fable: 10 x 4 [1Y]\n# Key:     .model [1]\n   .model       index           value .mean\n   &lt;chr&gt;        &lt;mixtime&gt;      &lt;dist&gt; &lt;dbl&gt;\n 1 ARIMA(value) 1989      N(145, 240) 145. \n 2 ARIMA(value) 1990      N(165, 582) 165. \n 3 ARIMA(value) 1991      N(161, 819) 161. \n 4 ARIMA(value) 1992      N(136, 915) 136. \n 5 ARIMA(value) 1993       N(98, 928)  98.3\n 6 ARIMA(value) 1994       N(62, 929)  61.8\n 7 ARIMA(value) 1995       N(38, 938)  37.9\n 8 ARIMA(value) 1996       N(33, 941)  33.4\n 9 ARIMA(value) 1997       N(48, 947)  48.5\n10 ARIMA(value) 1998      N(77, 1006)  77.0"
+  },
+  {
+    "objectID": "index.html#section-38",
+    "href": "index.html#section-38",
+    "title": "",
+    "section": "",
+    "text": "Visualising distributions\nThe {ggdist} and {ggdibbler} packages extend {ggplot2} with distributional graphics."
+  },
+  {
+    "objectID": "index.html#section-39",
+    "href": "index.html#section-39",
+    "title": "",
+    "section": "",
+    "text": "Visualising distributions\nThe {ggdist} and {ggdibbler} packages extend {ggplot2} with distributional graphics."
+  },
+  {
+    "objectID": "index.html#section-40",
+    "href": "index.html#section-40",
+    "title": "",
+    "section": "",
+    "text": "Visualising time\nThe {ggtime} package extends {ggplot2} with temporal graphics."
+  },
+  {
+    "objectID": "index.html#section-41",
+    "href": "index.html#section-41",
+    "title": "",
+    "section": "",
+    "text": "Visualising forecasts\nCombining {ggtime} and {ggdist} enables flexible forecast visualisation."
+  },
+  {
+    "objectID": "index.html#thanks-for-your-time",
+    "href": "index.html#thanks-for-your-time",
+    "title": "",
+    "section": "Thanks for your time!",
+    "text": "Thanks for your time!\n\n\n\n\n\n\n\n\nFinal remarks\n\n\n\n📊 Strict semantics supports safer statistics.\n♾️ Endless combinations for stats and data viz.\n🧑‍💻 Vectorised code 🤝 statistical analysis.\n💭 Can ‘vecvec’ style solutions solve other problems?\n\n\n\n\n\n\n\n\n\n\n\nUseful links\n\n\n social.mitchelloharawild.com\n slides.mitchelloharawild.com/user2026\n mitchelloharawild/talk-vecvec-user2026"
+  },
+  {
+    "objectID": "index.html#section-42",
+    "href": "index.html#section-42",
+    "title": "",
+    "section": "",
+    "text": "🎉 Bonus Slides 🎉"
+  },
+  {
+    "objectID": "index.html#section-43",
+    "href": "index.html#section-43",
+    "title": "",
+    "section": "",
+    "text": "Modifying distributions\nDistributions can be transformed using mathematical operations.\n\ndist_normal(1,3)\n\n&lt;distribution[1]&gt;\n[1] N(1, 9)\n\n\n\n\n2 + dist_normal(1,3)\n\n&lt;distribution[1]&gt;\n[1] N(3, 9)\n\n\n\n\n\n3 * (2 + dist_normal(1,3))\n\n&lt;distribution[1]&gt;\n[1] N(9, 81)\n\n\n\n\n\nexp(3 * (2 + dist_normal(1,3)))\n\n&lt;distribution[1]&gt;\n[1] lN(9, 81)"
+  },
+  {
+    "objectID": "index.html#section-44",
+    "href": "index.html#section-44",
+    "title": "",
+    "section": "",
+    "text": "Modifying distributions\n\n\n\n\n\n\nTransformed distribution\n\n\ndist_transformed() enables arbitrary transformations.\n\n(3 * (2 + dist_normal(1,3)))^2\n\n&lt;distribution[1]&gt;\n[1] t(N(9, 81))\n\n\n\n\n\n\n\n\n\n\n\n\nOther distribution modifiers\n\n\n🎈 dist_inflated()\n✂️ dist_truncated()\n🥣 dist_mixture()"
+  },
+  {
+    "objectID": "index.html#section-45",
+    "href": "index.html#section-45",
+    "title": "",
+    "section": "",
+    "text": "Vectorised operations\nVectorised operations in distributional are safer than the p/d/q/r equivalents.\n\n\n\n\n\n\nVectorising in two ways\n\n\nThere are two types of operation arguments:\n\nvector/matrix inputs\nVectorises across distributions, then arguments.\nThis approach is simpler, especially single arguments.\nlist/data.frame inputs\nVectorises across arguments, then distributions.\nThis approach is more flexible and powerful."
+  },
+  {
+    "objectID": "index.html#section-46",
+    "href": "index.html#section-46",
+    "title": "",
+    "section": "",
+    "text": "Vectorised operations (vectors)\n\n(y &lt;- c(dist_normal(0, 1), dist_beta(5, 1), dist_gamma(2, 1)))\n\n&lt;distribution[3]&gt;\n[1] N(0, 1)    Beta(5, 1) Γ(2, 1)   \n\n\nVectors/matrices apply the same operation inputs to each distribution.\n\ndensity(y, at = 0.65)\n\n[1] 0.3229724 0.8925312 0.3393298\n\ndensity(y, at = c(0.65, 0.9))\n\n[[1]]\n[1] 0.3229724 0.2660852\n\n[[2]]\n[1] 0.8925312 3.2805000\n\n[[3]]\n[1] 0.3393298 0.3659127"
+  },
+  {
+    "objectID": "index.html#section-47",
+    "href": "index.html#section-47",
+    "title": "",
+    "section": "",
+    "text": "Vectorised operations (vectors)\n\n\n\n\n\n\nDistributions in data analysis\n\n\nThis also works well with data frames.\n\ntibble::tibble(y) |&gt; \n  dplyr::mutate(density(y, at = 0.65))\n\n# A tibble: 3 × 2\n           y `density(y, at = 0.65)`\n      &lt;dist&gt;                   &lt;dbl&gt;\n1    N(0, 1)                   0.323\n2 Beta(5, 1)                   0.893\n3    Γ(2, 1)                   0.339\n\n\n\nAlthough its a bit tricky for more than one input.\n\ntibble::tibble(y) |&gt; \n  dplyr::mutate(density(y, at = c(0.65, 0.9)))\n\n# A tibble: 3 × 2\n           y `density(y, at = c(0.65, 0.9))`\n      &lt;dist&gt; &lt;list&gt;                         \n1    N(0, 1) &lt;dbl [2]&gt;                      \n2 Beta(5, 1) &lt;dbl [2]&gt;                      \n3    Γ(2, 1) &lt;dbl [2]&gt;"
+  },
+  {
+    "objectID": "index.html#section-48",
+    "href": "index.html#section-48",
+    "title": "",
+    "section": "",
+    "text": "Vectorised operations (lists)\n\n(y &lt;- c(dist_normal(0, 1), dist_beta(5, 1), dist_gamma(2, 1)))\n\n&lt;distribution[3]&gt;\n[1] N(0, 1)    Beta(5, 1) Γ(2, 1)   \n\n\nLists/data.frames recycle each input argument to the length of distributions.\n\ndensity(y, at = list(d1 = 0.65))\n\n         d1\n1 0.3229724\n2 0.8925312\n3 0.3393298\n\ndensity(y, at = list(d1 = 0.65, d2 = 0.9))\n\n         d1        d2\n1 0.3229724 0.2660852\n2 0.8925312 3.2805000\n3 0.3393298 0.3659127"
+  },
+  {
+    "objectID": "index.html#section-49",
+    "href": "index.html#section-49",
+    "title": "",
+    "section": "",
+    "text": "Vectorised operations (lists)\n\n(y &lt;- c(dist_normal(0, 1), dist_beta(5, 1), dist_gamma(2, 1)))\n\n&lt;distribution[3]&gt;\n[1] N(0, 1)    Beta(5, 1) Γ(2, 1)   \n\n\nThis also allows vectorisation across both inputs and distributions.\n\ndensity(y, at = list(dens = c(0.65, 0.9, 0.3)))\n\n       dens\n1 0.3229724\n2 3.2805000\n3 0.2222455\n\n\n\n\n\n\n\n\n\nReliable recycling\n\n\n\ndensity(y, list(dens = c(0.65, 0.9)))\n\nError in `FUN()`:\n! Cannot recycle input of size 2 to match the distributions (size 3)."
+  },
+  {
+    "objectID": "index.html#section-50",
+    "href": "index.html#section-50",
+    "title": "",
+    "section": "",
+    "text": "Vectorised operations (lists)\n\n\n\n\n\n\nDistributions in data analysis\n\n\nThis also works really well with data frames.\n\ntibble::tibble(y) |&gt; \n  dplyr::mutate(density(y, at = list(d1 = 0.65)))\n\n# A tibble: 3 × 2\n           y    d1\n      &lt;dist&gt; &lt;dbl&gt;\n1    N(0, 1) 0.323\n2 Beta(5, 1) 0.893\n3    Γ(2, 1) 0.339\n\n\n\nmutate() automatically unpacks the results if unnamed.\n\ntibble::tibble(y) |&gt; \n  dplyr::mutate(\n    density(y, at = list(d1 = 0.65, d2 = 0.9))\n  )\n\n# A tibble: 3 × 3\n           y    d1    d2\n      &lt;dist&gt; &lt;dbl&gt; &lt;dbl&gt;\n1    N(0, 1) 0.323 0.266\n2 Beta(5, 1) 0.893 3.28 \n3    Γ(2, 1) 0.339 0.366"
+  },
+  {
+    "objectID": "index.html#section-51",
+    "href": "index.html#section-51",
+    "title": "",
+    "section": "",
+    "text": "Visualising distributions\n\nlibrary(ggdist)\nlibrary(ggplot2)\ndf &lt;- tibble::tibble(\n  name = c(\"Gamma(2,1)\", \"Normal(5,1)\", \"Mixture\"),\n  dist = c(dist_gamma(2,1), dist_normal(5,1),\n           dist_mixture(dist_gamma(2,1), dist_normal(5, 1), weights = c(0.4, 0.6)))\n)\nggplot(df, aes(y = factor(name, levels = rev(name)))) +\n  stat_dist_halfeye(aes(dist = dist)) + \n  labs(title = \"Density function for a mixture of distributions\", y = NULL, x = NULL)"
+  },
+  {
+    "objectID": "todo.html#todo",
+    "href": "todo.html#todo",
+    "title": "",
+    "section": "TODO",
+    "text": "TODO\n\nAdd more explanation of the inner data structure of a vecvec\nExpand explanation of vecvec (e.g. arrays)\nReduce emphasis on {distributional}, possibly expand {mixtime}\nAdd open question on subvec - does this ‘expansion’ idea apply to MVN?"
+  }
+]
