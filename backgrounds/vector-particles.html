@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Sierpiński Carpet Random Depth Walk</title>
+<style>
+  html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: transparent;
+  }
+  svg {
+    width: 100vw;
+    height: 100vh;
+    display: block;
+    pointer-events: none;
+    user-select: none;
+    contain: layout paint;
+  }
+  .panel-bg {
+    shape-rendering: crispEdges;
+  }
+  .layer {
+    shape-rendering: crispEdges;
+    opacity: 0;
+    transition: opacity 1.5s ease-in-out;
+    will-change: opacity;
+  }
+  .layer.active {
+    opacity: 1;
+  }
+  .tile {
+    fill: #000;
+  }
+  @font-face {
+    font-family: "league-gothic";
+    src: url("../_site/site_libs/revealjs/dist/theme/fonts/league-gothic/league-gothic.woff") format("woff");
+  }
+  .banner {
+    font-family: sztos-variable, league-gothic, Helvetica, sans-serif;
+    font-variation-settings: "wght" 220;
+    font-stretch: 50%;
+    letter-spacing: -0.02em;
+  }
+  .banner-r {
+    fill: none;
+    stroke: #fff;
+    stroke-width: 4;
+  }
+</style>
+</head>
+<body>
+<svg id="svg" viewBox="0 0 1280 720" preserveAspectRatio="xMinYMin meet"></svg>
+<script>
+(() => {
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.getElementById("svg");
+
+  // Slide: 1280×720. Left column: 37.5% = 480px wide.
+  // 4-panel grid: 2×2, each panel 240×240, filling the full 480px column width.
+  const colWidth = 480;
+  const panelSize = 240;
+  const gridTop = 720 - colWidth; // = 240
+  const carpetSize = 173; // ≈ 72% of panelSize
+
+  const panels = [
+    { x: 0,         y: gridTop,             bg: "#5aa6e6" },
+    { x: panelSize, y: gridTop,             bg: "#ffcf1f" },
+    { x: 0,         y: gridTop + panelSize, bg: "#ff9a3d" },
+    { x: panelSize, y: gridTop + panelSize, bg: "#a97bf7" }
+  ];
+
+  const minDepth = 1;
+  const maxDepth = 4;
+  const depthCount = maxDepth - minDepth + 1;
+  // Hold durations in ms (180–420 frames @ 60 fps ≈ 3–7 s)
+  const holdMsMin = 3000;
+  const holdMsMax = 7000;
+
+  function make(name, attrs = {}) {
+    const el = document.createElementNS(NS, name);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+    return el;
+  }
+
+  function buildCarpetPath(size, depth) {
+    let rects = [{ x: 0, y: 0, s: size }];
+    for (let d = 0; d < depth; d++) {
+      const next = [];
+      for (const r of rects) {
+        const t = r.s / 3;
+        for (let row = 0; row < 3; row++) {
+          for (let col = 0; col < 3; col++) {
+            if (row === 1 && col === 1) continue;
+            next.push({ x: r.x + col * t, y: r.y + row * t, s: t });
+          }
+        }
+      }
+      rects = next;
+    }
+    return rects.map(r => `M${r.x} ${r.y}h${r.s}v${r.s}h${-r.s}Z`).join("");
+  }
+
+  const carpetPaths = Array.from(
+    { length: depthCount },
+    (_, i) => buildCarpetPath(carpetSize, minDepth + i)
+  );
+
+  function randInt(a, b) {
+    return a + Math.floor(Math.random() * (b - a + 1));
+  }
+
+  function randHoldMs() {
+    return randInt(holdMsMin, holdMsMax);
+  }
+
+  function chooseNextDepth(current) {
+    if (current <= 0) return 1;
+    if (current >= depthCount - 1) return depthCount - 2;
+    return current + (Math.random() < 0.5 ? -1 : 1);
+  }
+
+  // Pre-compose carpet paths in <defs> — defined once, referenced per panel via <use>
+  const defs = make("defs");
+  carpetPaths.forEach((d, i) => {
+    defs.appendChild(make("path", { id: `carpet-${i}`, class: "tile", d }));
+  });
+  svg.appendChild(defs);
+
+  // Black background above the grid, within the left column
+  svg.appendChild(make("rect", { x: 0, y: 0, width: colWidth, height: gridTop, fill: "#000" }));
+
+  const panelStates = [];
+  let scheduler = null;
+  let paused = false;
+
+  function scheduleNextTick() {
+    clearTimeout(scheduler);
+    scheduler = null;
+
+    if (paused || panelStates.length === 0) return;
+
+    const soonest = panelStates.reduce((min, state) => Math.min(min, state.nextAt), Infinity);
+    const delay = Math.max(0, soonest - performance.now());
+    scheduler = setTimeout(runTick, delay);
+  }
+
+  function advancePanel(state, now) {
+    const nextDepth = chooseNextDepth(state.currentDepth);
+    state.back.setAttribute("href", `#carpet-${nextDepth}`);
+    state.front.classList.remove("active");
+    state.back.classList.add("active");
+
+    const oldFront = state.front;
+    state.front = state.back;
+    state.back = oldFront;
+    state.currentDepth = nextDepth;
+    state.nextAt = now + randHoldMs();
+  }
+
+  function runTick() {
+    scheduler = null;
+    if (paused) return;
+
+    const now = performance.now();
+    for (const state of panelStates) {
+      if (state.nextAt <= now) {
+        advancePanel(state, now);
+      }
+    }
+
+    scheduleNextTick();
+  }
+
+  function setPaused(nextPaused) {
+    paused = nextPaused;
+    clearTimeout(scheduler);
+    scheduler = null;
+
+    if (!paused) {
+      const now = performance.now();
+      for (const state of panelStates) {
+        state.nextAt = Math.min(state.nextAt, now + 1);
+      }
+      scheduleNextTick();
+    }
+  }
+
+  for (const p of panels) {
+    const pg = make("g");
+    svg.appendChild(pg);
+    pg.appendChild(make("rect", {
+      class: "panel-bg",
+      x: p.x, y: p.y,
+      width: panelSize, height: panelSize,
+      fill: p.bg
+    }));
+
+    const sx = p.x + (panelSize - carpetSize) / 2;
+    const sy = p.y + (panelSize - carpetSize) / 2;
+    const carpetGroup = make("g", { transform: `translate(${sx},${sy})` });
+    pg.appendChild(carpetGroup);
+
+    const currentDepth = randInt(0, depthCount - 1);
+    const front = make("use", { class: "layer active", href: `#carpet-${currentDepth}` });
+    const back = make("use", { class: "layer", href: `#carpet-${currentDepth}` });
+    carpetGroup.appendChild(front);
+    carpetGroup.appendChild(back);
+
+    panelStates.push({ currentDepth, front, back, nextAt: performance.now() + randHoldMs() });
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    setPaused(document.hidden);
+  });
+
+  scheduleNextTick();
+})();
+</script>
+</body>
+</html>

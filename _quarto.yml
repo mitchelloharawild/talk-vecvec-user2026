@@ -1,0 +1,16 @@
+project:
+  type: website
+  resources:
+    - backgrounds/vector-particles.html
+
+format:
+  revealjs:
+    # main slide deck entry
+    self-contained: false
+    theme: default
+
+# default document
+metadata:
+  # index.qmd will be the main slide deck
+  execute:
+    echo: false
